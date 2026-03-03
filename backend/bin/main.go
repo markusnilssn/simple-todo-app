@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"backend/env"
 	"backend/internal"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -16,20 +17,19 @@ import (
 var RDSClient *rdsdata.Client
 var DBClusterArn string
 var DBSecretArn string
-var DatabaseName string
 
 func main() {
 	fmt.Println("Server starting...");
 
 	DBClusterArn = os.Getenv("DB_CLUSTER_ARN")
 	DBSecretArn = os.Getenv("DB_SECRET_ARN")
-	DatabaseName = os.Getenv("DATABASE_NAME") 
 
-	if DBClusterArn == "" || DBSecretArn == "" {
-		log.Fatal("DB_CLUSTER_ARN and DB_SECRET_ARN environment variables are required")
-	}
+	// err := env.Load();
+	// if(err != nil) {
+	// 	log.Fatal("failed to load .env %S", err.Error())
+	// }
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(Region))
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(env.AWS_REGION.GetValue()))
 	if err != nil {
         log.Fatal(err)
 	}
