@@ -10,7 +10,7 @@ func Handle(writer http.ResponseWriter, response* http.Request) {
 	}
 }
 
-func HandleDelete(writer http.ResponseWriter, response* http.Request) 
+func HandleByID(writer http.ResponseWriter, response* http.Request) {}
 
 func getItems(w http.ResponseWriter) {} 
 func createItem(writer http.ResponseWriter, r* http.Request) {}

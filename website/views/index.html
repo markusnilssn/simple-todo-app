@@ -2,26 +2,64 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Todo App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Todo List</h1>
-        
-        <!-- Add Todo Form -->
-        <div class="add-todo">
-            <input type="text" id="todoInput" placeholder="Enter a new todo...">
-            <button onclick="addTodo()">Add Todo</button>
-        </div>
+<div class="container">
+    <h1>Todo List</h1>
 
-        <!-- Todo List -->
-        <div id="todoList" class="todo-list">
-            <!-- Todos will be dynamically added here -->
-        </div>
+    <!-- Add Todo Form -->
+    <div class="add-todo">
+        <input type="text" id="titleInput" placeholder="Title">
+        <input type="text" id="descriptionInput" placeholder="Description">
+        
+        <select id="priorityInput">
+            <option value="0">Low</option>
+            <option value="1">Medium</option>
+            <option value="2">High</option>
+            <option value="3">Critical</option>
+        </select>
+
+        <button onclick="handleAddTodo()">Add Todo</button>
     </div>
 
-    <script src="/app.js"></script>
+    <!-- Todo List -->
+    <div id="todoList" class="todo-list"></div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="empty-state" style="display:none;">
+        No todos available
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h2>Edit Todo</h2>
+
+        <input type="hidden" id="editId">
+        <input type="text" id="editTitle">
+        <input type="text" id="editDescription">
+
+        <select id="editPriority">
+            <option value="0">Low</option>
+            <option value="1">Medium</option>
+            <option value="2">High</option>
+            <option value="3">Critical</option>
+        </select>
+
+        <div class="modal-actions">
+            <button onclick="handleUpdateTodo()">Save</button>
+            <button onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="js/app.js"></script>
 </body>
 </html>
