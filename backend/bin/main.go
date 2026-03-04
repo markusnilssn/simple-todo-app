@@ -1,32 +1,16 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
-	"backend/internal"
-
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/rdsdata"
-
-	"github.com/joho/godotenv"
+	"backend/internal/api/aws"
 )
 
-// global variables
-
-var RDSClient *rdsdata.Client
-var AWSAccessKeyID string
-var AWSSecretAccessKey string
-
 const (
-	PORT                  string = "PORT"
-	AWS_REGION            string = "AWS_REGION"
-	DATABASE_NAME         string = "DATABASE_NAME"
-	AWS_ACCESS_KEY_ID     string = "AWS_ACCESS_KEY_ID"
-	AWS_SECRET_ACCESS_KEY string = "AWS_SECRET_ACCESS_KEY"
+	PORT string = "PORT"
 )
 
 func enableCORS(next http.HandlerFunc) http.HandlerFunc {
@@ -47,26 +31,10 @@ func enableCORS(next http.HandlerFunc) http.HandlerFunc {
 func main() {
 	fmt.Println("Server starting...")
 
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("failed to load .env %S", err.Error())
-	}
+	aws.InitStorage()
 
-	AWSAccessKeyID = os.Getenv(AWS_ACCESS_KEY_ID)
-	AWSSecretAccessKey = os.Getenv(AWS_SECRET_ACCESS_KEY)
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(os.Getenv(AWS_REGION)))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	RDSClient = rdsdata.NewFromConfig(cfg)
-	if RDSClient == nil {
-		log.Println("rsd client is null")
-	}
-
-	http.HandleFunc("/todos", enableCORS(internal.Handle))
-	http.HandleFunc("/todos/", enableCORS(internal.HandleByID))
+	http.HandleFunc("/todos", enableCORS(aws.Handle))
+	http.HandleFunc("/todos/", enableCORS(aws.HandleByID))
 
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -1,16 +1,16 @@
-package internal
+package aws
 
 import (
+	"backend/internal/models"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"slices"
 	"strconv"
 	"strings"
 )
 
-var todos []Todo = []Todo{}
+var todos []models.Todo = []models.Todo{}
 
 func Handle(writer http.ResponseWriter, response *http.Request) {
 	switch response.Method {
@@ -30,11 +30,7 @@ func HandleByID(writer http.ResponseWriter, response *http.Request) {
 	}
 
 	idStr := strings.TrimPrefix(response.URL.Path, "/todos/")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
+	id, _ := strconv.Atoi(idStr)
 
 	deleteTodo(writer, id)
 }
@@ -44,7 +40,7 @@ func getItems(w http.ResponseWriter) {
 }
 
 func createItem(writer http.ResponseWriter, response *http.Request) {
-	var newTodo Todo
+	var newTodo models.Todo
 	json.NewDecoder(response.Body).Decode(&newTodo)
 	todos = append(todos, newTodo)
 	writer.WriteHeader(201)
