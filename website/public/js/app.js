@@ -1,5 +1,7 @@
 const API = "http://backend:8080";
 
+var verbose = true;
+
 document.addEventListener("DOMContentLoaded", () => {
     loadAllTodos();
 });
@@ -54,7 +56,7 @@ async function handleAddTodo() {
 
         await addTodo({ title, description, priority });
         await loadAllTodos();
-    } catch (err) { 
+    } catch (err) {
         handleError(err, "Failed to add todo");
     }
 }
@@ -122,21 +124,26 @@ function showToast(message) {
 }
 
 async function loadTodos() {
-  const res = await fetch(`${API}/todos`);
-  const todos = await res.json();
+    if (verbose)
+        console.log("load Todos")
 
-  const list = document.getElementById("todoList");
-  list.innerHTML = "";
+    const res = await fetch(`${API}/todos`);
+    const todos = await res.json();
 
-  todos.forEach(todo => {
-    const li = document.createElement("li");
-    li.innerText = todo.title;
-    list.appendChild(li);
-  });
+    const list = document.getElementById("todoList");
+    list.innerHTML = "";
+
+    todos.forEach(todo => {
+        const li = document.createElement("li");
+        li.innerText = todo.title;
+        list.appendChild(li);
+    });
 }
 
 function handleError(error, fallbackMessage = "Something went wrong") {
-    // console.error(error);
+    if (verbose)
+        console.warn(error);
+
     clearTodos();
     showEmptyState();
     showToast(error?.message || fallbackMessage);
@@ -156,18 +163,27 @@ function hideEmptyState() {
 }
 
 async function addTodo() {
-  const input = document.getElementById("todoInput");
+    if (verbose)
+        console.log("add Todo");
 
-  await fetch(`${API}/todos`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title: input.value })
-  });
+    const input = document.getElementById("todoInput");
 
-  input.value = "";
-  loadTodos();
+    await fetch(`${API}/todos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: input.value })
+    });
+
+    input.value = "";
+    loadTodos();
 }
 
-async function removeTodo() {}
-async function updateTodo() {}
+async function removeTodo() {
+    if (verbose)
+        console.log("remove Todo")
+}
+async function updateTodo() {
+    if (verbose)
+        console.log("update Todo");
+}
 
