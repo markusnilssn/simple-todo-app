@@ -1,4 +1,4 @@
-const API = "http://backend:8080";
+const API = "http://localhost:8080";
 
 var verbose = true;
 
@@ -39,7 +39,6 @@ function renderTodos(todos) {
                 </span>
             </div>
             <div class="todo-actions">
-                <button onclick='openEditModal(${JSON.stringify(todo)})'>Edit</button>
                 <button onclick="handleDelete(${todo.id})">Delete</button>
             </div>
         `;
@@ -70,36 +69,83 @@ async function handleDelete(id) {
     }
 }
 
-function openEditModal(todo) {
-    document.getElementById("editId").value = todo.id;
-    document.getElementById("editTitle").value = todo.title;
-    document.getElementById("editDescription").value = todo.description;
-    document.getElementById("editPriority").value = todo.priority;
+async function loadTodos() {
+    if (verbose) console.log("Fetching todos from API...");
 
-    document.getElementById("editModal").style.display = "flex";
+    const res = await fetch(`${API}/todos`);
+
+    if (!res.ok) throw new Error("Could not fetch todos");
+
+    const data = await res.json();
+
+    console.log(data);
+    return data;
 }
 
-function closeModal() {
-    document.getElementById("editModal").style.display = "none";
+function handleError(error, fallbackMessage = "Something went wrong") {
+    if (verbose) console.warn(error);
+
+    clearTodos();
+    showEmptyState();
+    showToast(error?.message || fallbackMessage);
 }
 
-async function handleUpdateTodo() {
-    try {
-        const id = parseInt(document.getElementById("editId").value);
-        const title = document.getElementById("editTitle").value;
-        const description = document.getElementById("editDescription").value;
-        const priority = parseInt(document.getElementById("editPriority").value);
+function clearTodos() {
+    const list = document.getElementById("todoList");
+    list.innerHTML = "";
+}
 
-        await updateTodo(id, { title, description, priority });
-        closeModal();
-        await loadAllTodos();
-    } catch (err) {
-        closeModal();
-        handleError(err, "Failed to update todo");
+function showEmptyState() {
+    document.getElementById("emptyState").style.display = "block";
+}
+
+function hideEmptyState() {
+    document.getElementById("emptyState").style.display = "none";
+}
+
+async function addTodo(todoData) {
+    if (verbose) console.log("add Todo:", todoData);
+
+    const res = await fetch(`${API}/todos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(todoData)
+    });
+
+    if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`);
+    }
+
+    document.getElementById("titleInput").value = "";
+    document.getElementById("descriptionInput").value = "";
+}
+
+async function removeTodo(id) {
+    if (verbose) console.log("remove Todo ID:", id);
+
+    const res = await fetch(`${API}/todos/${id}`, {
+        method: "DELETE"
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to delete task ${id}`);
     }
 }
 
-/* Priority Helpers */
+async function updateTodo(id, updatedData) {
+    if (verbose) console.log("update Todo ID:", id, updatedData);
+
+    const res = await fetch(`${API}/todos/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedData)
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to update task ${id}`);
+    }
+}
+
 function getPriorityText(p) {
     return ["Low", "Medium", "High", "Critical"][p];
 }
@@ -122,68 +168,3 @@ function showToast(message) {
         toast.remove();
     }, 3300);
 }
-
-async function loadTodos() {
-    if (verbose)
-        console.log("load Todos")
-
-    const res = await fetch(`${API}/todos`);
-    const todos = await res.json();
-
-    const list = document.getElementById("todoList");
-    list.innerHTML = "";
-
-    todos.forEach(todo => {
-        const li = document.createElement("li");
-        li.innerText = todo.title;
-        list.appendChild(li);
-    });
-}
-
-function handleError(error, fallbackMessage = "Something went wrong") {
-    if (verbose)
-        console.warn(error);
-
-    clearTodos();
-    showEmptyState();
-    showToast(error?.message || fallbackMessage);
-}
-
-function clearTodos() {
-    const list = document.getElementById("todoList");
-    list.innerHTML = "";
-}
-
-function showEmptyState() {
-    document.getElementById("emptyState").style.display = "block";
-}
-
-function hideEmptyState() {
-    document.getElementById("emptyState").style.display = "none";
-}
-
-async function addTodo() {
-    if (verbose)
-        console.log("add Todo");
-
-    const input = document.getElementById("todoInput");
-
-    await fetch(`${API}/todos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: input.value })
-    });
-
-    input.value = "";
-    loadTodos();
-}
-
-async function removeTodo() {
-    if (verbose)
-        console.log("remove Todo")
-}
-async function updateTodo() {
-    if (verbose)
-        console.log("update Todo");
-}
-

@@ -29,6 +29,21 @@ const (
 	AWS_SECRET_ACCESS_KEY string = "AWS_SECRET_ACCESS_KEY"
 )
 
+func enableCORS(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next(w, r)
+	}
+}
+
 func main() {
 	fmt.Println("Server starting...")
 
@@ -46,9 +61,12 @@ func main() {
 	}
 
 	RDSClient = rdsdata.NewFromConfig(cfg)
+	if RDSClient == nil {
+		log.Println("rsd client is null")
+	}
 
-	http.HandleFunc("/todos", internal.Handle)
-	http.HandleFunc("/todos/", internal.HandleByID)
+	http.HandleFunc("/todos", enableCORS(internal.Handle))
+	http.HandleFunc("/todos/", enableCORS(internal.HandleByID))
 
 	port := os.Getenv("PORT")
 	if port == "" {
