@@ -25,7 +25,6 @@ type DBSecret struct {
 var SQLDatabase *sql.DB = nil
 
 func InitStorage() {
-
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("failed to load .env %S", err.Error())
@@ -89,4 +88,21 @@ func InitStorage() {
 	SQLDatabase = db
 
 	log.Print("successfully connected to the database!")
+}
+
+func InitTable() {
+	query := `
+CREATE TABLE IF NOT EXISTS todos (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    priority INTEGER,
+    completed BOOLEAN DEFAULT FALSE
+)
+`
+	_, err := SQLDatabase.Exec(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }

@@ -31,6 +31,7 @@ func main() {
 	fmt.Println("Server starting...")
 
 	aws.InitStorage()
+	aws.InitTable()
 
 	http.HandleFunc("/todos", enableCORS(aws.Handle))
 	http.HandleFunc("/todos/", enableCORS(aws.HandleByID))
