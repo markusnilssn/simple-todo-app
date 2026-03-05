@@ -23,16 +23,43 @@ func Handle(writer http.ResponseWriter, response *http.Request) {
 	}
 }
 
-func HandleByID(writer http.ResponseWriter, response *http.Request) {
-	if response.Method != http.MethodDelete {
+func HandleByID(writer http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/todos/")
+	id, _ := strconv.Atoi(idStr)
+
+	switch r.Method {
+
+	case http.MethodDelete:
+		deleteItem(writer, id)
+
+	case http.MethodPut:
+		toggleCompleted(writer, id)
+
+	default:
 		writer.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func toggleCompleted(writer http.ResponseWriter, id int) {
+	query := `
+		UPDATE todos
+		SET completed = NOT completed
+		WHERE id = $1
+	`
+
+	_, err := SQLDatabase.ExecContext(
+		context.TODO(),
+		query,
+		id,
+	)
+
+	if err != nil {
+		log.Printf("failed to execute sql %s, error: %s", query, err.Error())
+		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	idStr := strings.TrimPrefix(response.URL.Path, "/todos/")
-	id, _ := strconv.Atoi(idStr)
-
-	deleteItem(writer, id)
+	writer.WriteHeader(http.StatusOK)
 }
 
 func getItems(writer http.ResponseWriter) {

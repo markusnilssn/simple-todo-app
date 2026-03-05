@@ -28,7 +28,7 @@ function renderTodos(todos) {
 
     todos.forEach(todo => {
         const div = document.createElement("div");
-        div.className = "todo-item";
+        div.className = `todo-item ${todo.completed ? "completed" : ""}`;
 
         div.innerHTML = `
             <div class="todo-info">
@@ -37,9 +37,20 @@ function renderTodos(todos) {
                 <span class="priority ${getPriorityClass(todo.priority)}">
                     ${getPriorityText(todo.priority)}
                 </span>
+                <br>
+                <small>Status: ${todo.completed ? "Completed" : "Pending"}</small>
             </div>
+
             <div class="todo-actions">
-                <button onclick="handleDelete(${todo.id})">Delete</button>
+                <button 
+                    class="${todo.completed ? "uncomplete-btn" : "complete-btn"}"
+                    onclick="handleToggleCompleted(${todo.id}, ${todo.completed})">
+                    ${todo.completed ? "Undo" : "Complete"}
+                </button>
+
+                <button onclick="handleDelete(${todo.id})">
+                    Delete
+                </button>
             </div>
         `;
 
@@ -167,4 +178,13 @@ function showToast(message) {
     setTimeout(() => {
         toast.remove();
     }, 3300);
+}
+
+async function handleToggleCompleted(id, completed) {
+    try {
+        await updateTodo(id, { completed: !completed });
+        await loadAllTodos();
+    } catch (err) {
+        handleError(err, "Failed to update todo");
+    }
 }
