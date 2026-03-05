@@ -2,42 +2,91 @@ package aws
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
+	"fmt"
 	"log"
 	"os"
+	"strconv"
 
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/rdsdata"
 	"github.com/joho/godotenv"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	_ "github.com/lib/pq"
 )
 
-const (
-	AWS_REGION            string = "AWS_REGION"
-	DATABASE_NAME         string = "DATABASE_NAME"
-	AWS_ACCESS_KEY_ID     string = "AWS_ACCESS_KEY_ID"
-	AWS_SECRET_ACCESS_KEY string = "AWS_SECRET_ACCESS_KEY"
-)
+type DBSecret struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
 
-var RDSClient *rdsdata.Client
-var AWSAccessKeyID string
-var AWSSecretAccessKey string
+var SQLDatabase *sql.DB = nil
 
 func InitStorage() {
+
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("failed to load .env %S", err.Error())
+		return
 	}
 
-	AWSAccessKeyID = os.Getenv(AWS_ACCESS_KEY_ID)
-	AWSSecretAccessKey = os.Getenv(AWS_SECRET_ACCESS_KEY)
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(os.Getenv(AWS_REGION)))
+	databaseName := os.Getenv("AWS_DATABASE_NAME")
+	databaseHost := os.Getenv("AWS_HOST")
+	databasePort, err := strconv.Atoi(os.Getenv("AWS_PORT"))
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("failed to convert aws port %s", err.Error())
+		return
 	}
 
-	RDSClient = rdsdata.NewFromConfig(cfg)
-	if RDSClient == nil {
-		log.Println("rsd client is null")
+	secretName := os.Getenv("AWS_SECRET_NAME")
+	region := os.Getenv("AWS_REGION")
+
+	config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		log.Fatalf("failed to load .env %s", err.Error())
 	}
 
+	svc := secretsmanager.NewFromConfig(config)
+
+	input := &secretsmanager.GetSecretValueInput{
+		SecretId:     aws.String(secretName),
+		VersionStage: aws.String("AWSCURRENT"), // VersionStage defaults to AWSCURRENT if unspecified
+	}
+
+	result, err := svc.GetSecretValue(context.TODO(), input)
+	if err != nil {
+		log.Fatalf("failed to load .env %s", err.Error())
+		return
+	}
+
+	var secret DBSecret
+	if err := json.Unmarshal([]byte(*result.SecretString), &secret); err != nil {
+		log.Fatalf("failed to parse secret JSON: %s", err)
+	}
+
+	dsn := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=require",
+		databaseHost,
+		databasePort,
+		secret.Username,
+		secret.Password,
+		databaseName,
+	)
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	SQLDatabase = db
+
+	log.Print("successfully connected to the database!")
 }

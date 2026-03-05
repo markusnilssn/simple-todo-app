@@ -14,4 +14,5 @@ type Todo struct {
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
 	Priority    Priority `json:"priority"`
+	Completed   bool     `json:"completed"`
 }

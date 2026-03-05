@@ -1,12 +1,11 @@
 package main
 
 import (
+	"backend/internal/api/aws"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-
-	"backend/internal/api/aws"
 )
 
 const (

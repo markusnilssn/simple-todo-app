@@ -2,15 +2,15 @@ package aws
 
 import (
 	"backend/internal/models"
+	"context"
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 )
 
-var todos []models.Todo = []models.Todo{}
+var database = "todos"
 
 func Handle(writer http.ResponseWriter, response *http.Request) {
 	switch response.Method {
@@ -32,32 +32,105 @@ func HandleByID(writer http.ResponseWriter, response *http.Request) {
 	idStr := strings.TrimPrefix(response.URL.Path, "/todos/")
 	id, _ := strconv.Atoi(idStr)
 
-	deleteTodo(writer, id)
+	deleteItem(writer, id)
 }
 
-func getItems(w http.ResponseWriter) {
-	json.NewEncoder(w).Encode(todos) // write :))
-}
+func getItems(writer http.ResponseWriter) {
+	query := "SELECT id, title, description, priority, completed FROM todos"
 
-func createItem(writer http.ResponseWriter, response *http.Request) {
-	var newTodo models.Todo
-	json.NewDecoder(response.Body).Decode(&newTodo)
-	todos = append(todos, newTodo)
-	writer.WriteHeader(201)
-}
+	rows, err := SQLDatabase.QueryContext(context.TODO(), query)
+	if err != nil {
+		log.Printf("failed to execute sql %s, error: %s", query, err.Error())
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
 
-func deleteTodo(w http.ResponseWriter, id int) {
-	removeIndex := -1
-	for index, _ := range todos {
-		if index == id {
-			removeIndex = index
+	var todos []models.Todo
+
+	for rows.Next() {
+		var todo models.Todo
+		var priority int
+
+		err := rows.Scan(
+			&todo.ID,
+			&todo.Title,
+			&todo.Description,
+			&priority,
+			&todo.Completed,
+		)
+		if err != nil {
+			log.Printf("failed to scan row: %s", err.Error())
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
 		}
+
+		todo.Priority = models.Priority(priority)
+		todos = append(todos, todo)
 	}
 
-	if removeIndex > -1 {
-		todos = slices.Delete(todos, removeIndex, 1)
-		fmt.Printf("removed index %d\n", removeIndex)
-	} else {
-		fmt.Printf("failed to remove index\n")
+	if err := rows.Err(); err != nil {
+		log.Printf("row iteration error: %s", err.Error())
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
 	}
+
+	writer.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(writer).Encode(todos)
+}
+
+func createItem(writer http.ResponseWriter, request *http.Request) {
+	var newTodo models.Todo
+
+	err := json.NewDecoder(request.Body).Decode(&newTodo)
+	if err != nil {
+		log.Printf("failed to decode request body: %s", err.Error())
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	query := `
+		INSERT INTO todos (title, description, priority, completed)
+		VALUES ($1, $2, $3, $4)
+	`
+
+	_, err = SQLDatabase.ExecContext(
+		context.TODO(),
+		query,
+		newTodo.Title,
+		newTodo.Description,
+		int(newTodo.Priority),
+		newTodo.Completed,
+	)
+
+	if err != nil {
+		log.Printf("failed to execute sql %s, error: %s", query, err.Error())
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	writer.WriteHeader(http.StatusCreated)
+}
+
+func deleteItem(writer http.ResponseWriter, id int) {
+	query := "DELETE FROM todos WHERE id = $1"
+
+	_, err := SQLDatabase.ExecContext(
+		context.TODO(),
+		query,
+		id,
+	)
+
+	if err != nil {
+		log.Printf("failed to execute sql %s, error: %s", query, err.Error())
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("deleted todo %d\n", id)
+	writer.WriteHeader(http.StatusOK)
+}
+
+func stringPtr(s string) *string {
+	return &s
 }
