@@ -73,7 +73,7 @@ func InitStorage() {
 		secret.Password,
 		databaseName,
 	)
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open(databaseName, dsn)
 	if err != nil {
 		log.Println(err)
 		return
