@@ -7,6 +7,10 @@ services:
       - "8080:8080"
     env_file:
       - ./backend/.env
+    develop:
+      watch:
+        - action: rebuild
+          path: ./backend
 
   frontend:
     build:
@@ -15,3 +19,10 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    develop:
+      watch:
+        - action: sync
+          path: ./website
+          target: /app
+        - action: rebuild
+          path: ./website/package.json

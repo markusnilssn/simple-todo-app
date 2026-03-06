@@ -3,6 +3,7 @@ const path = require("path");
 
 const app = express();
 const PORT = 3000;
+const HOST = '0.0.0.0';
 
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -11,6 +12,6 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "index.html"));
 });
 
-app.listen(PORT, () => {
-  console.log("Website running on port " + PORT);
+app.listen(PORT, HOST, () => {
+  console.log(`Website running on http://${HOST}:${PORT}`);
 });

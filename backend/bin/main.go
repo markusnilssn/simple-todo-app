@@ -33,14 +33,23 @@ func main() {
 	aws.InitStorage()
 	aws.InitTable()
 
-	http.HandleFunc("/todos", enableCORS(aws.Handle))
-	http.HandleFunc("/todos/", enableCORS(aws.HandleByID))
+	mutex := http.NewServeMux()
+	mutex.HandleFunc("/todos", enableCORS(aws.Handle))
+	mutex.HandleFunc("/todos/", enableCORS(aws.HandleByID))
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Println("Server running on: " + port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	address := "0.0.0.0:" + port
+	log.Printf("Server starting on %s", address)
+	server := &http.Server{
+		Addr:    address,
+		Handler: mutex,
+	}
+
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("Listen: %s\n", err)
+	}
 }
